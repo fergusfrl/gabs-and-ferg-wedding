@@ -1,11 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { PointerEvent as ReactPointerEvent } from 'react';
 import { formatPhotoTime } from './formatTime';
-import type { Photo } from '../data/photos';
 import './ScrollRail.css';
 
 interface ScrollRailProps {
-  photos: Photo[];
+  // Only createDate is needed for the hover badge, so callers pass this
+  // instead of the full Photo[] — that array also carries every photo's
+  // blurDataURL and src URLs, which would otherwise double the page's
+  // inlined island props for no benefit to this component.
+  dates: string[];
 }
 
 const BACK_TO_TOP_THRESHOLD = 480;
@@ -14,7 +17,7 @@ function getMaxScroll() {
   return document.documentElement.scrollHeight - window.innerHeight;
 }
 
-export default function ScrollRail({ photos }: ScrollRailProps) {
+export default function ScrollRail({ dates }: ScrollRailProps) {
   const trackRef = useRef<HTMLDivElement>(null);
   const draggingRef = useRef(false);
 
@@ -83,8 +86,8 @@ export default function ScrollRail({ photos }: ScrollRailProps) {
   }, []);
 
   const interacting = hovering || dragging;
-  const badgeIndex = Math.min(photos.length - 1, Math.max(0, Math.floor(previewFraction * photos.length)));
-  const badgePhoto = photos[badgeIndex];
+  const badgeIndex = Math.min(dates.length - 1, Math.max(0, Math.floor(previewFraction * dates.length)));
+  const badgeDate = dates[badgeIndex];
 
   return (
     <>
@@ -100,9 +103,9 @@ export default function ScrollRail({ photos }: ScrollRailProps) {
         <div className="scroll-rail-fill" style={{ height: `${progress * 100}%` }} />
         <div className="scroll-rail-thumb" style={{ top: `${progress * 100}%` }} />
 
-        {interacting && badgePhoto && (
+        {interacting && badgeDate && (
           <div className="scroll-rail-time" style={{ top: `${previewFraction * 100}%` }}>
-            {formatPhotoTime(badgePhoto.createDate)}
+            {formatPhotoTime(badgeDate)}
           </div>
         )}
       </div>

@@ -4,10 +4,12 @@ import Hero from '../components/Hero.astro';
 import Gallery from '../components/Gallery';
 import ScrollRail from '../components/ScrollRail';
 import { photos } from '../data/photos';
+
+const photoDates = photos.map((p) => p.createDate);
 ---
 
 <Layout>
 	<Hero photos={photos} />
 	<Gallery photos={photos} client:load />
-	<ScrollRail photos={photos} client:load />
+	<ScrollRail dates={photoDates} client:load />
 </Layout>
