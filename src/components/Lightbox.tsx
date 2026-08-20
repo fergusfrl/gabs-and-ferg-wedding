@@ -70,9 +70,17 @@ export default function Lightbox({ photos, initialIndex, getOriginRect, onClose 
     };
   }, []);
 
-  // Preload the full-quality image and swap it in once ready.
+  // Preload the full-quality image and swap it in once ready — but only if
+  // the display actually needs more pixels than the "large" (1600w) asset
+  // already showing can provide. Otherwise every lightbox view would pull
+  // down the heaviest asset (2400w) even on phones, which never render it
+  // at more than a fraction of that resolution. The full-res original is
+  // still just a tap away via the download/open-fullscreen buttons.
   useEffect(() => {
     setHqSrc(null);
+    const targetWidth = window.innerWidth * (window.devicePixelRatio || 1);
+    if (targetWidth <= 1600) return;
+
     let cancelled = false;
     const img = new Image();
     img.src = photo.src.full;
