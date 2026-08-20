@@ -3,11 +3,7 @@ import Layout from '../layouts/Layout.astro';
 import Hero from '../components/Hero.astro';
 import Gallery from '../components/Gallery';
 import ScrollRail from '../components/ScrollRail';
-import rawPhotos from '../data/photos.json';
-
-const photos = [...rawPhotos].sort(
-	(a, b) => new Date(a.createDate).getTime() - new Date(b.createDate).getTime(),
-);
+import { photos } from '../data/photos';
 ---
 
 <Layout>
