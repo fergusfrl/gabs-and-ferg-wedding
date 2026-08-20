@@ -28,6 +28,10 @@ const LOCAL_PHOTOS_DIR = path.join(PROJECT_ROOT, 'public', 'photos');
 const VARIANT_WIDTHS = { thumb: 400, medium: 800, large: 1600, full: 2400 };
 const BLUR_WIDTH = 20;
 
+// Object keys are content-addressed (photo id is a hash of the source file),
+// so a key's bytes never change once uploaded — safe to cache forever.
+const CACHE_CONTROL = 'public, max-age=31536000, immutable';
+
 loadDotEnv();
 
 const REQUIRED_ENV = ['R2_ACCOUNT_ID', 'R2_ACCESS_KEY_ID', 'R2_SECRET_ACCESS_KEY', 'R2_BUCKET_NAME', 'R2_PUBLIC_BASE_URL'];
@@ -129,6 +133,7 @@ async function uploadVariant(s3, key, buffer) {
       Key: key,
       Body: buffer,
       ContentType: 'image/webp',
+      CacheControl: CACHE_CONTROL,
     }),
   );
   return true;
