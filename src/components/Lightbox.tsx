@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import type { CSSProperties } from 'react';
 import type { Photo } from '../data/photos';
 import { formatPhotoTime } from './formatTime';
 import './Lightbox.css';
@@ -156,6 +157,7 @@ export default function Lightbox({ photos, initialIndex, getOriginRect, onClose 
   return (
     <div
       className={`lightbox-overlay ${phase === 'open' ? 'lightbox-overlay-visible' : ''}`}
+      style={{ '--lightbox-transition-ms': `${TRANSITION_MS}ms` } as CSSProperties}
       onClick={(e) => {
         if (e.target === e.currentTarget) requestClose();
       }}

@@ -3,7 +3,10 @@
   inset: 0;
   z-index: 1000;
   background: rgba(10, 10, 10, 0);
-  transition: background 0.35s ease;
+  /* Kept in sync with TRANSITION_MS in Lightbox.tsx via a custom property,
+     since the backdrop fade and the image's open/close transform are the
+     same choreography and previously drifted out of sync (350ms vs 150ms). */
+  transition: background var(--lightbox-transition-ms, 350ms) ease;
 }
 
 .lightbox-overlay-visible {
