@@ -3,6 +3,7 @@ import type { KeyboardEvent as ReactKeyboardEvent } from 'react';
 import justifiedLayout from 'justified-layout';
 import Lightbox from './Lightbox';
 import { formatPhotoTime } from './formatTime';
+import { prefetchLightboxImage } from './prefetchImage';
 import type { Photo } from '../data/photos';
 import './Gallery.css';
 
@@ -21,6 +22,10 @@ const TARGET_ROW_HEIGHT = 240;
 const BOX_SPACING = 4;
 const VIEWPORT_BUFFER_MULTIPLIER = 1.5;
 const RESIZE_DEBOUNCE_MS = 150;
+// A cursor passing over the grid en route elsewhere shouldn't trigger a
+// fetch for every cell it crosses — only hovers that linger long enough to
+// suggest real intent to open the photo.
+const HOVER_PREFETCH_DELAY_MS = 150;
 
 export default function Gallery({ photos }: GalleryProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -184,6 +189,7 @@ interface CellProps {
 function Cell({ photo, box, index, total, onOpen, registerRef }: CellProps) {
   const [loaded, setLoaded] = useState(false);
   const cellWidth = Math.round(box.width);
+  const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
 
   const srcSet = [
     `${photo.src.thumb} 400w`,
@@ -199,6 +205,16 @@ function Cell({ photo, box, index, total, onOpen, registerRef }: CellProps) {
     }
   };
 
+  const handleMouseEnter = () => {
+    hoverTimeoutRef.current = setTimeout(() => prefetchLightboxImage(photo), HOVER_PREFETCH_DELAY_MS);
+  };
+
+  const handleMouseLeave = () => {
+    clearTimeout(hoverTimeoutRef.current);
+  };
+
+  useEffect(() => () => clearTimeout(hoverTimeoutRef.current), []);
+
   return (
     <div
       ref={(el) => registerRef(index, el)}
@@ -208,6 +224,8 @@ function Cell({ photo, box, index, total, onOpen, registerRef }: CellProps) {
       tabIndex={0}
       onClick={() => onOpen(index)}
       onKeyDown={handleKeyDown}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
     >
       <div className="gallery-cell-placeholder" style={{ backgroundImage: `url(${photo.blurDataURL})` }} />
       <img

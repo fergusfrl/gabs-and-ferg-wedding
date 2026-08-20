@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 import type { Photo } from '../data/photos';
 import { formatPhotoTime } from './formatTime';
+import { needsFullRes, prefetchLightboxImage } from './prefetchImage';
 import './Lightbox.css';
 
 const TRANSITION_MS = 150;
@@ -85,8 +86,7 @@ export default function Lightbox({ photos, initialIndex, getOriginRect, onClose 
   // still just a tap away via the download/open-fullscreen buttons.
   useEffect(() => {
     setHqSrc(null);
-    const targetWidth = window.innerWidth * (window.devicePixelRatio || 1);
-    if (targetWidth <= 1600) return;
+    if (!needsFullRes()) return;
 
     let cancelled = false;
     const img = new Image();
@@ -98,6 +98,14 @@ export default function Lightbox({ photos, initialIndex, getOriginRect, onClose 
       cancelled = true;
     };
   }, [photo]);
+
+  // Get the adjacent photos into cache while the current one is being
+  // viewed, so paging with the arrow keys/buttons resolves instantly instead
+  // of waiting on a fresh network request.
+  useEffect(() => {
+    if (index > 0) prefetchLightboxImage(photos[index - 1]);
+    if (index < photos.length - 1) prefetchLightboxImage(photos[index + 1]);
+  }, [index, photos]);
 
   const handleDownload = useCallback(async () => {
     const url = photo.src.full;
