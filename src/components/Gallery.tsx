@@ -101,6 +101,30 @@ export default function Gallery({ photos }: GalleryProps) {
     };
   }, [layout.containerHeight]);
 
+  // Boxes come out of justified-layout in row order, and every box in a row
+  // shares the same top/height, so `top + height` only ever increases going
+  // down the page. That monotonicity lets us binary-search the first
+  // possibly-visible box instead of mapping over and rendering all 1000+
+  // cells (most as empty placeholders) on every scroll-driven update.
+  const visibleIndices = useMemo(() => {
+    const boxes = layout.boxes;
+    if (boxes.length === 0) return [] as number[];
+
+    let lo = 0;
+    let hi = boxes.length;
+    while (lo < hi) {
+      const mid = (lo + hi) >>> 1;
+      if (boxes[mid].top + boxes[mid].height < visibleRange.top) lo = mid + 1;
+      else hi = mid;
+    }
+
+    const indices: number[] = [];
+    for (let i = lo; i < boxes.length && boxes[i].top <= visibleRange.bottom; i++) {
+      indices.push(i);
+    }
+    return indices;
+  }, [layout.boxes, visibleRange]);
+
   const registerCellRef = useCallback((index: number, el: HTMLDivElement | null) => {
     if (el) cellRefs.current.set(index, el);
     else cellRefs.current.delete(index);
@@ -124,34 +148,17 @@ export default function Gallery({ photos }: GalleryProps) {
 
   return (
     <div ref={containerRef} className="gallery" style={{ height: layout.containerHeight }}>
-      {photos.map((photo, index) => {
-        const box = layout.boxes[index];
-        if (!box) return null;
-
-        const isVisible = box.top + box.height >= visibleRange.top && box.top <= visibleRange.bottom;
-
-        if (!isVisible) {
-          return (
-            <div
-              key={photo.id}
-              className="gallery-cell"
-              style={{ top: box.top, left: box.left, width: box.width, height: box.height }}
-            />
-          );
-        }
-
-        return (
-          <Cell
-            key={photo.id}
-            photo={photo}
-            box={box}
-            index={index}
-            total={photos.length}
-            onOpen={openAt}
-            registerRef={registerCellRef}
-          />
-        );
-      })}
+      {visibleIndices.map((index) => (
+        <Cell
+          key={photos[index].id}
+          photo={photos[index]}
+          box={layout.boxes[index]}
+          index={index}
+          total={photos.length}
+          onOpen={openAt}
+          registerRef={registerCellRef}
+        />
+      ))}
 
       {lightboxIndex !== null && (
         <Lightbox
