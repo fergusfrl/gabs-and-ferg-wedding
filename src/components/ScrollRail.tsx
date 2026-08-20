@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { PointerEvent as ReactPointerEvent } from 'react';
 import { formatPhotoTime } from './formatTime';
-import type { Photo } from './Gallery';
+import type { Photo } from '../data/photos';
 import './ScrollRail.css';
 
 interface ScrollRailProps {

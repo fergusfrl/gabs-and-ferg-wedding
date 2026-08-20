@@ -2,25 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import justifiedLayout from 'justified-layout';
 import Lightbox from './Lightbox';
 import { formatPhotoTime } from './formatTime';
+import type { Photo } from '../data/photos';
 import './Gallery.css';
-
-interface PhotoSrc {
-  thumb: string;
-  medium: string;
-  large: string;
-  full: string;
-}
-
-export interface Photo {
-  id: string;
-  album: string;
-  createDate: string;
-  width: number;
-  height: number;
-  aspectRatio: number;
-  blurDataURL: string;
-  src: PhotoSrc;
-}
 
 interface Box {
   top: number;

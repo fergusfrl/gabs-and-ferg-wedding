@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { Photo } from './Gallery';
+import type { Photo } from '../data/photos';
 import { formatPhotoTime } from './formatTime';
 import './Lightbox.css';
 
