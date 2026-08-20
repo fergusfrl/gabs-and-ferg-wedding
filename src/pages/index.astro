@@ -1,6 +1,8 @@
 ---
 import Layout from '../layouts/Layout.astro';
+import Hero from '../components/Hero.astro';
 import Gallery from '../components/Gallery';
+import ScrollRail from '../components/ScrollRail';
 import rawPhotos from '../data/photos.json';
 
 const photos = [...rawPhotos].sort(
@@ -9,5 +11,7 @@ const photos = [...rawPhotos].sort(
 ---
 
 <Layout>
+	<Hero photos={photos} />
 	<Gallery photos={photos} client:load />
+	<ScrollRail photos={photos} client:load />
 </Layout>
