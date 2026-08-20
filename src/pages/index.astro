@@ -11,5 +11,5 @@ const photoDates = photos.map((p) => p.createDate);
 <Layout>
 	<Hero photos={photos} />
 	<Gallery photos={photos} client:load />
-	<ScrollRail dates={photoDates} client:load />
+	<ScrollRail dates={photoDates} client:idle />
 </Layout>
