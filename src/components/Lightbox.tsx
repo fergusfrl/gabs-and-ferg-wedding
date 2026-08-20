@@ -17,7 +17,10 @@ interface LightboxProps {
   photos: Photo[];
   initialIndex: number;
   getOriginRect: (index: number) => Rect | null;
-  onClose: () => void;
+  // Takes the index being closed from, so the caller can return keyboard
+  // focus to the gallery cell the user opened (rather than dropping focus
+  // to <body>).
+  onClose: (index: number) => void;
 }
 
 type Phase = 'opening' | 'open' | 'closing';
@@ -43,11 +46,15 @@ export default function Lightbox({ photos, initialIndex, getOriginRect, onClose 
   const [hqSrc, setHqSrc] = useState<string | null>(null);
   const [navOpacity, setNavOpacity] = useState(1);
   const closeTimeoutRef = useRef<ReturnType<typeof setTimeout>>(0);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
 
   const photo = photos[index];
 
-  // Kick off the opening transition on mount.
+  // Kick off the opening transition on mount, and move focus into the
+  // dialog so keyboard/screen-reader users land somewhere sensible rather
+  // than staying on the (now hidden) gallery cell behind the overlay.
   useEffect(() => {
+    closeButtonRef.current?.focus();
     const raf1 = requestAnimationFrame(() => {
       const raf2 = requestAnimationFrame(() => setPhase('open'));
       return () => cancelAnimationFrame(raf2);
@@ -127,7 +134,7 @@ export default function Lightbox({ photos, initialIndex, getOriginRect, onClose 
     const rect = getOriginRect(index);
     setCloseTransform(rectToTransform(rect));
     setPhase('closing');
-    closeTimeoutRef.current = setTimeout(onClose, TRANSITION_MS);
+    closeTimeoutRef.current = setTimeout(() => onClose(index), TRANSITION_MS);
   }, [getOriginRect, index, onClose]);
 
   const goTo = useCallback(
@@ -166,6 +173,9 @@ export default function Lightbox({ photos, initialIndex, getOriginRect, onClose 
     <div
       className={`lightbox-overlay ${phase === 'open' ? 'lightbox-overlay-visible' : ''}`}
       style={{ '--lightbox-transition-ms': `${TRANSITION_MS}ms` } as CSSProperties}
+      role="dialog"
+      aria-modal="true"
+      aria-label={`Photo ${index + 1} of ${photos.length}`}
       onClick={(e) => {
         if (e.target === e.currentTarget) requestClose();
       }}
@@ -183,7 +193,7 @@ export default function Lightbox({ photos, initialIndex, getOriginRect, onClose 
         <img
           key={photo.id}
           src={displaySrc}
-          alt={photo.album}
+          alt={`Wedding photo ${index + 1} of ${photos.length}`}
           className="lightbox-image"
           style={{
             transform,
@@ -218,7 +228,13 @@ export default function Lightbox({ photos, initialIndex, getOriginRect, onClose 
           </svg>
         </button>
 
-        <button type="button" className="lightbox-action" onClick={requestClose} aria-label="Close">
+        <button
+          type="button"
+          ref={closeButtonRef}
+          className="lightbox-action"
+          onClick={requestClose}
+          aria-label="Close"
+        >
           <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2">
             <line x1="4" y1="4" x2="20" y2="20" strokeLinecap="round" />
             <line x1="20" y1="4" x2="4" y2="20" strokeLinecap="round" />

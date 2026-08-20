@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { KeyboardEvent as ReactKeyboardEvent } from 'react';
 import justifiedLayout from 'justified-layout';
 import Lightbox from './Lightbox';
 import { formatPhotoTime } from './formatTime';
@@ -116,7 +117,8 @@ export default function Gallery({ photos }: GalleryProps) {
     setLightboxIndex(index);
   }, []);
 
-  const closeLightbox = useCallback(() => {
+  const closeLightbox = useCallback((index: number) => {
+    cellRefs.current.get(index)?.focus();
     setLightboxIndex(null);
   }, []);
 
@@ -144,6 +146,7 @@ export default function Gallery({ photos }: GalleryProps) {
             photo={photo}
             box={box}
             index={index}
+            total={photos.length}
             onOpen={openAt}
             registerRef={registerCellRef}
           />
@@ -166,11 +169,12 @@ interface CellProps {
   photo: Photo;
   box: Box;
   index: number;
+  total: number;
   onOpen: (index: number) => void;
   registerRef: (index: number, el: HTMLDivElement | null) => void;
 }
 
-function Cell({ photo, box, index, onOpen, registerRef }: CellProps) {
+function Cell({ photo, box, index, total, onOpen, registerRef }: CellProps) {
   const [loaded, setLoaded] = useState(false);
   const cellWidth = Math.round(box.width);
 
@@ -181,19 +185,29 @@ function Cell({ photo, box, index, onOpen, registerRef }: CellProps) {
     `${photo.src.full} 2400w`,
   ].join(', ');
 
+  const handleKeyDown = (e: ReactKeyboardEvent) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      onOpen(index);
+    }
+  };
+
   return (
     <div
       ref={(el) => registerRef(index, el)}
       className="gallery-cell"
       style={{ top: box.top, left: box.left, width: box.width, height: box.height }}
+      role="button"
+      tabIndex={0}
       onClick={() => onOpen(index)}
+      onKeyDown={handleKeyDown}
     >
       <div className="gallery-cell-placeholder" style={{ backgroundImage: `url(${photo.blurDataURL})` }} />
       <img
         src={photo.src.medium}
         srcSet={srcSet}
         sizes={`${cellWidth}px`}
-        alt={photo.album}
+        alt={`Wedding photo ${index + 1} of ${total}`}
         loading="lazy"
         className={loaded ? 'loaded' : undefined}
         onLoad={() => setLoaded(true)}

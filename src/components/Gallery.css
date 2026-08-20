@@ -24,6 +24,11 @@
   opacity: 1;
 }
 
+.gallery-cell:focus-visible {
+  outline: 3px solid #fff;
+  outline-offset: -3px;
+}
+
 .gallery-cell-placeholder {
   position: absolute;
   inset: 0;
