@@ -1,0 +1,53 @@
+.gallery {
+  position: relative;
+  width: 100%;
+}
+
+.gallery-cell {
+  position: absolute;
+  overflow: hidden;
+  background: #e5e1d8;
+}
+
+.gallery-cell-placeholder {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  filter: blur(20px);
+  transform: scale(1.1);
+}
+
+.gallery-cell img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 0.35s ease;
+  cursor: zoom-in;
+}
+
+.gallery-cell img.loaded {
+  opacity: 1;
+}
+
+.gallery-cell-time {
+  position: absolute;
+  left: 8px;
+  bottom: 8px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.45);
+  color: #fff;
+  font-size: 12px;
+  line-height: 1;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  pointer-events: none;
+}
+
+.gallery-cell:hover .gallery-cell-time {
+  opacity: 1;
+}

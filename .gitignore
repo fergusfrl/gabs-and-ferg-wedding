@@ -22,3 +22,9 @@ pnpm-debug.log*
 
 # jetbrains setting folder
 .idea/
+
+# local Takeout import working files (never committed — see docs/IMPORTING-PHOTOS.md)
+data/originals/
+
+# local-mode photo variants (generated when R2 isn't configured — see docs/IMPORTING-PHOTOS.md)
+public/photos/
