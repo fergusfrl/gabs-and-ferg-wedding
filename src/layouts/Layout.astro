@@ -1,13 +1,40 @@
+---
+export interface Props {
+	ogImage: {
+		url: string;
+		width: number;
+		height: number;
+	};
+}
+
+const { ogImage } = Astro.props;
+const title = '♥ Gabrielle & Fergus';
+const description = "Photos from Gabrielle & Fergus's wedding — browse and view the gallery.";
+---
+
 <!doctype html>
 <html lang="en">
 	<head>
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width" />
-		<meta name="description" content="Photos from Gabrielle & Fergus's wedding — browse and view the gallery." />
+		<meta name="description" content={description} />
 		<link rel="preconnect" href="https://pub-547e65dbff834c7d80319e60d678d840.r2.dev" crossorigin />
 		<link rel="icon" href="/favicon.ico" />
 		<meta name="generator" content={Astro.generator} />
-		<title>♥ Gabrielle & Fergus</title>
+		<title>{title}</title>
+
+		<meta property="og:type" content="website" />
+		<meta property="og:title" content={title} />
+		<meta property="og:description" content={description} />
+		<meta property="og:url" content={Astro.url} />
+		<meta property="og:image" content={ogImage.url} />
+		<meta property="og:image:width" content={String(ogImage.width)} />
+		<meta property="og:image:height" content={String(ogImage.height)} />
+
+		<meta name="twitter:card" content="summary_large_image" />
+		<meta name="twitter:title" content={title} />
+		<meta name="twitter:description" content={description} />
+		<meta name="twitter:image" content={ogImage.url} />
 	</head>
 	<body>
 		<slot />

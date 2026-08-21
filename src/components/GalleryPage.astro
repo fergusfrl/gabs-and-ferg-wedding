@@ -1,14 +1,35 @@
 ---
+import { getImage } from 'astro:assets';
 import Layout from '../layouts/Layout.astro';
 import Hero from './Hero.astro';
 import Gallery from './Gallery';
 import ScrollRail from './ScrollRail';
 import { photos } from '../data/photos';
+import { parsePhotoIdFromPath } from './photoUrl';
+import heroImage from '../assets/hero.jpg';
 
 const photoDates = photos.map((p) => p.createDate);
+
+const photoId = parsePhotoIdFromPath(Astro.url.pathname);
+const sharedPhoto = photoId ? photos.find((p) => p.id === photoId) : undefined;
+
+const ogImage = sharedPhoto
+	? {
+			url: sharedPhoto.src.large,
+			width: 1600,
+			height: Math.round(1600 / sharedPhoto.aspectRatio),
+		}
+	: await (async () => {
+			const optimized = await getImage({ src: heroImage, width: 1600, format: 'webp' });
+			return {
+				url: new URL(optimized.src, Astro.site).toString(),
+				width: optimized.attributes.width,
+				height: optimized.attributes.height,
+			};
+		})();
 ---
 
-<Layout>
+<Layout ogImage={ogImage}>
 	<Hero />
 	<Gallery photos={photos} client:load />
 	<ScrollRail dates={photoDates} client:idle />
