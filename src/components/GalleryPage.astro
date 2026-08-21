@@ -31,6 +31,6 @@ const ogImage = sharedPhoto
 
 <Layout ogImage={ogImage}>
 	<Hero />
-	<Gallery photos={photos} client:load />
+	<Gallery photos={photos} client:visible />
 	<ScrollRail dates={photoDates} client:idle />
 </Layout>

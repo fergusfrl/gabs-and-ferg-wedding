@@ -1,19 +1,25 @@
 ---
-import { Image } from 'astro:assets';
+import { getImage } from 'astro:assets';
 import heroImage from '../assets/hero.jpg';
+
+const widths = [400, 800, 1550];
+// AVIF and WebP perceive "quality" on different scales — matching the WebP
+// number here would produce an AVIF file larger than the WebP one.
+const avif = await getImage({ src: heroImage, widths, format: 'avif', quality: 60 });
+const webp = await getImage({ src: heroImage, widths, format: 'webp', quality: 82 });
 ---
 
 <section class="hero">
-	<Image
-		class="hero-image"
-		src={heroImage}
-		widths={[400, 800, 1600, 2400]}
-		sizes="100vw"
-		format="webp"
-		quality={82}
-		alt=""
-		fetchpriority="high"
-	/>
+	<picture class="hero-image">
+		<source srcset={avif.srcSet.attribute} sizes="100vw" type="image/avif" />
+		<img
+			src={webp.src}
+			srcset={webp.srcSet.attribute}
+			sizes="100vw"
+			alt=""
+			fetchpriority="high"
+		/>
+	</picture>
 	<div class="hero-overlay"></div>
 	<div class="hero-content">
 		<h1>Gabrielle &amp; Fergus</h1>
@@ -34,6 +40,12 @@ import heroImage from '../assets/hero.jpg';
 	.hero-image {
 		position: absolute;
 		inset: 0;
+		display: block;
+		width: 100%;
+		height: 100%;
+	}
+
+	.hero-image img {
 		width: 100%;
 		height: 100%;
 		object-fit: cover;

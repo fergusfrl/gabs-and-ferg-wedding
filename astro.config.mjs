@@ -9,5 +9,8 @@ export default defineConfig({
   // once configured, otherwise the netlify.app subdomain) — fall back to the
   // intended custom domain for local builds where that env var isn't set.
   site: process.env.URL || 'https://www.gabsandferg.com',
-  integrations: [react()]
+  integrations: [react()],
+  build: {
+    inlineStylesheets: 'always'
+  }
 });
