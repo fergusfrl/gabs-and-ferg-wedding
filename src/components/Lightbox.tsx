@@ -3,15 +3,27 @@ import type { CSSProperties } from 'react';
 import type { Photo } from '../data/photos';
 import { formatPhotoTime } from './formatTime';
 import { needsFullRes, prefetchLightboxImage } from './prefetchImage';
+import { parsePhotoIdFromPath, photoPath } from './photoUrl';
 import './Lightbox.css';
 
 const TRANSITION_MS = 150;
+const SLIDE_TRANSITION_MS = 280;
+const SLIDE_EASING = 'cubic-bezier(0.2, 0.8, 0.2, 1)';
 
 interface Rect {
   top: number;
   left: number;
   width: number;
   height: number;
+}
+
+// Snapshot of the photo being navigated away from, kept on screen just long
+// enough to slide out in the direction of travel while the new photo slides
+// in behind it.
+interface SlideOut {
+  src: string;
+  blurDataURL: string;
+  direction: 1 | -1;
 }
 
 interface LightboxProps {
@@ -45,11 +57,14 @@ export default function Lightbox({ photos, initialIndex, getOriginRect, onClose 
   const [openTransform] = useState(() => rectToTransform(getOriginRect(initialIndex)));
   const [closeTransform, setCloseTransform] = useState<string | null>(null);
   const [hqSrc, setHqSrc] = useState<string | null>(null);
-  const [navOpacity, setNavOpacity] = useState(1);
+  const [slideOut, setSlideOut] = useState<SlideOut | null>(null);
+  const [slideActive, setSlideActive] = useState(false);
   const closeTimeoutRef = useRef<ReturnType<typeof setTimeout>>(0);
+  const slideTimeoutRef = useRef<ReturnType<typeof setTimeout>>(0);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
 
   const photo = photos[index];
+  const displaySrc = hqSrc ?? photo.src.large;
 
   // Kick off the opening transition on mount, and move focus into the
   // dialog so keyboard/screen-reader users land somewhere sensible rather
@@ -61,6 +76,18 @@ export default function Lightbox({ photos, initialIndex, getOriginRect, onClose 
       return () => cancelAnimationFrame(raf2);
     });
     return () => cancelAnimationFrame(raf1);
+  }, []);
+
+  // Reflect the photo being shown in the URL so it can be shared/reloaded.
+  // Skipped if we're already there (e.g. Gallery's popstate handler just
+  // reopened this exact photo in response to a forward-navigation), so we
+  // don't push a duplicate entry on top of one the browser already has.
+  useEffect(() => {
+    const path = photoPath(photos[initialIndex].id);
+    if (window.location.pathname !== path) {
+      history.pushState({ photoId: photos[initialIndex].id }, '', path);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Lock page scroll while the lightbox is open. body/html are pinned to
@@ -142,20 +169,43 @@ export default function Lightbox({ photos, initialIndex, getOriginRect, onClose 
     const rect = getOriginRect(index);
     setCloseTransform(rectToTransform(rect));
     setPhase('closing');
-    closeTimeoutRef.current = setTimeout(() => onClose(index), TRANSITION_MS);
+    // history.back() is deferred alongside onClose (rather than fired
+    // immediately) so the resulting popstate — which closes the lightbox
+    // via Gallery's listener — lands after the closing animation has
+    // already been given its full TRANSITION_MS, instead of cutting it short.
+    closeTimeoutRef.current = setTimeout(() => {
+      onClose(index);
+      if (parsePhotoIdFromPath(window.location.pathname)) history.back();
+    }, TRANSITION_MS);
   }, [getOriginRect, index, onClose]);
 
   const goTo = useCallback(
     (next: number) => {
       if (next < 0 || next >= photos.length || next === index) return;
-      setNavOpacity(0);
-      setTimeout(() => {
-        setIndex(next);
-        setNavOpacity(1);
-      }, TRANSITION_MS / 2);
+      const direction: 1 | -1 = next > index ? 1 : -1;
+      setSlideOut({ src: displaySrc, blurDataURL: photo.blurDataURL, direction });
+      setSlideActive(false);
+      setIndex(next);
+      history.replaceState({ photoId: photos[next].id }, '', photoPath(photos[next].id));
     },
-    [photos.length, index],
+    [photos, index, photo, displaySrc],
   );
+
+  // Drive the slide: the outgoing photo (captured above) and the incoming
+  // one both start at rest, then on the next paint we flip them to their
+  // travel-direction offsets so the transform transition actually animates
+  // rather than jumping straight to the end state.
+  useEffect(() => {
+    if (!slideOut) return;
+    const raf1 = requestAnimationFrame(() => {
+      requestAnimationFrame(() => setSlideActive(true));
+    });
+    slideTimeoutRef.current = setTimeout(() => setSlideOut(null), SLIDE_TRANSITION_MS);
+    return () => {
+      cancelAnimationFrame(raf1);
+      clearTimeout(slideTimeoutRef.current);
+    };
+  }, [slideOut]);
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -168,14 +218,26 @@ export default function Lightbox({ photos, initialIndex, getOriginRect, onClose 
   }, [goTo, requestClose, index]);
 
   useEffect(() => {
-    return () => clearTimeout(closeTimeoutRef.current);
+    return () => {
+      clearTimeout(closeTimeoutRef.current);
+      clearTimeout(slideTimeoutRef.current);
+    };
   }, []);
 
   let transform = 'none';
   if (phase === 'opening') transform = openTransform;
   else if (phase === 'closing') transform = closeTransform ?? openTransform;
 
-  const displaySrc = hqSrc ?? photo.src.large;
+  // While a nav slide is in flight, the incoming photo overrides the
+  // open/close transform above (the two never happen at once) and travels
+  // in from the direction of the photo it's replacing.
+  const incomingTransform = slideOut
+    ? `translateX(${slideActive ? 0 : slideOut.direction * 100}%)`
+    : transform;
+  const outgoingTransform = slideOut
+    ? `translateX(${slideActive ? -slideOut.direction * 100 : 0}%)`
+    : 'none';
+  const slideTransition = `transform ${SLIDE_TRANSITION_MS}ms ${SLIDE_EASING}`;
 
   return (
     <div
@@ -189,26 +251,33 @@ export default function Lightbox({ photos, initialIndex, getOriginRect, onClose 
       }}
     >
       <div className="lightbox-stage">
+        {slideOut && (
+          <div
+            className="lightbox-slide"
+            style={{ transform: outgoingTransform, transition: slideTransition }}
+          >
+            <div
+              className="lightbox-placeholder"
+              style={{ backgroundImage: `url(${slideOut.blurDataURL})` }}
+            />
+            <img src={slideOut.src} alt="" className="lightbox-image" />
+          </div>
+        )}
         <div
-          className="lightbox-placeholder"
+          className="lightbox-slide"
           style={{
-            backgroundImage: `url(${photo.blurDataURL})`,
-            transform,
-            transition: `transform ${TRANSITION_MS}ms ease, opacity ${TRANSITION_MS}ms ease`,
-            opacity: navOpacity,
+            transform: incomingTransform,
+            transition: slideOut ? slideTransition : `transform ${TRANSITION_MS}ms ease`,
           }}
-        />
-        <img
-          key={photo.id}
-          src={displaySrc}
-          alt={`Wedding photo ${index + 1} of ${photos.length}`}
-          className="lightbox-image"
-          style={{
-            transform,
-            transition: `transform ${TRANSITION_MS}ms ease, opacity ${TRANSITION_MS}ms ease`,
-            opacity: navOpacity,
-          }}
-        />
+        >
+          <div className="lightbox-placeholder" style={{ backgroundImage: `url(${photo.blurDataURL})` }} />
+          <img
+            key={photo.id}
+            src={displaySrc}
+            alt={`Wedding photo ${index + 1} of ${photos.length}`}
+            className="lightbox-image"
+          />
+        </div>
       </div>
 
       <div className="lightbox-time">{formatPhotoTime(photo.createDate)}</div>

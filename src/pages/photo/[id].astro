@@ -1,0 +1,10 @@
+---
+import GalleryPage from '../../components/GalleryPage.astro';
+import { photos } from '../../data/photos';
+
+export function getStaticPaths() {
+  return photos.map((photo) => ({ params: { id: photo.id } }));
+}
+---
+
+<GalleryPage />

@@ -1,24 +1,16 @@
 ---
-import type { Photo } from '../data/photos';
-
-interface Props {
-  photos: Photo[];
-}
-
-const { photos } = Astro.props;
-
-const landscapePhotos = photos.filter((p) => p.aspectRatio > 1);
-const pool = landscapePhotos.length > 0 ? landscapePhotos : photos;
-const photo = pool[Math.floor(Math.random() * pool.length)];
+import { Image } from 'astro:assets';
+import heroImage from '../assets/hero.jpg';
 ---
 
 <section class="hero">
-	<div class="hero-placeholder" style={`background-image: url(${photo.blurDataURL})`}></div>
-	<img
+	<Image
 		class="hero-image"
-		src={photo.src.large}
-		srcset={`${photo.src.medium} 800w, ${photo.src.large} 1600w, ${photo.src.full} 2400w`}
+		src={heroImage}
+		widths={[400, 800, 1600, 2400]}
 		sizes="100vw"
+		format="webp"
+		quality={82}
 		alt=""
 		fetchpriority="high"
 	/>
@@ -37,15 +29,6 @@ const photo = pool[Math.floor(Math.random() * pool.length)];
 		height: 100vh;
 		min-height: 480px;
 		overflow: hidden;
-	}
-
-	.hero-placeholder {
-		position: absolute;
-		inset: 0;
-		background-size: cover;
-		background-position: center;
-		filter: blur(20px);
-		transform: scale(1.1);
 	}
 
 	.hero-image {

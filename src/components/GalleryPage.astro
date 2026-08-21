@@ -1,0 +1,15 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Hero from './Hero.astro';
+import Gallery from './Gallery';
+import ScrollRail from './ScrollRail';
+import { photos } from '../data/photos';
+
+const photoDates = photos.map((p) => p.createDate);
+---
+
+<Layout>
+	<Hero />
+	<Gallery photos={photos} client:load />
+	<ScrollRail dates={photoDates} client:idle />
+</Layout>

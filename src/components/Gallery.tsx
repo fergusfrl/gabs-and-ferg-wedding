@@ -4,6 +4,7 @@ import justifiedLayout from 'justified-layout';
 import Lightbox from './Lightbox';
 import { formatPhotoTime } from './formatTime';
 import { prefetchLightboxImage } from './prefetchImage';
+import { parsePhotoIdFromPath } from './photoUrl';
 import type { Photo } from '../data/photos';
 import './Gallery.css';
 
@@ -150,6 +151,53 @@ export default function Gallery({ photos }: GalleryProps) {
     cellRefs.current.get(index)?.focus();
     setLightboxIndex(null);
   }, []);
+
+  // Deep-link support: if the page was loaded at /photo/<id>, normalize the
+  // URL back to "/" (so closing the lightbox has a clean "/" to return to)
+  // and open that photo once the grid layout is known, scrolling its cell
+  // into view first so the virtualized grid mounts it and the lightbox can
+  // morph open from a real origin rect instead of a generic center fade-in.
+  const initialUrlHandledRef = useRef(false);
+  useEffect(() => {
+    if (initialUrlHandledRef.current || layout.boxes.length === 0) return;
+    initialUrlHandledRef.current = true;
+
+    const id = parsePhotoIdFromPath(window.location.pathname);
+    if (id === null) return;
+    history.replaceState(null, '', '/');
+
+    const index = photos.findIndex((p) => p.id === id);
+    if (index === -1) return;
+
+    const container = containerRef.current;
+    const box = layout.boxes[index];
+    if (container) {
+      const containerTop = container.getBoundingClientRect().top + window.scrollY;
+      const target = containerTop + box.top - Math.max(0, (window.innerHeight - box.height) / 2);
+      window.scrollTo(0, Math.max(0, target));
+    }
+
+    requestAnimationFrame(() => requestAnimationFrame(() => openAt(index)));
+  }, [layout.boxes, photos, openAt]);
+
+  // Browser back/forward: keep the lightbox in sync with real navigation.
+  // Our own open/navigate/close code drives the URL via pushState/
+  // replaceState, which never fires popstate, so this only ever fires for
+  // an actual back/forward button press — an immediate (unanimated) open or
+  // close is an acceptable trade-off for that comparatively rare path.
+  useEffect(() => {
+    const onPopState = () => {
+      const id = parsePhotoIdFromPath(window.location.pathname);
+      if (id === null) {
+        setLightboxIndex(null);
+        return;
+      }
+      const index = photos.findIndex((p) => p.id === id);
+      setLightboxIndex(index === -1 ? null : index);
+    };
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, [photos]);
 
   return (
     <div ref={containerRef} className="gallery" style={{ height: layout.containerHeight }}>
